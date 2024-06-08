@@ -2,7 +2,7 @@ function main() {
   scoring();
 }
 
-function sheet(name) {
+function sheet(name: string) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   return spreadsheet.getSheetByName(name);
 }
@@ -32,10 +32,10 @@ function scoring() {
   // logs to objects
   const logsHeaders = logs.shift();
   const objLogs = [];
-  for (var i = 1; i < logs.length; i++) {
+  for (let i = 1; i < logs.length; i++) {
     const row = logs[i];
     const obj = {};
-    for (var j = 0; j < logsHeaders.length; j++) {
+    for (let j = 0; j < logsHeaders.length; j++) {
       obj[logsHeaders[j]] = row[j];
     }
     objLogs.push(obj);
@@ -44,7 +44,7 @@ function scoring() {
   // categoryRelations to objects
   const categoryRelationsHeaders = logs.shift();
   const objCategoryRelations = {};
-  for (var i = 1; i < categoryRelations.length; i++) {
+  for (let i = 1; i < categoryRelations.length; i++) {
     const row = categoryRelations[i];
     const obj = {
       countName: row[3],
