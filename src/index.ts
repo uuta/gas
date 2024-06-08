@@ -7,6 +7,19 @@ function sheet(name: string) {
   return spreadsheet.getSheetByName(name);
 }
 
+type ObjCategoryRelations = {
+  countName: string;
+  categoryName: string;
+};
+
+type Score = {
+  shoulder: number;
+  chest: number;
+  butt: number;
+  legs: number;
+  stomach: number;
+};
+
 function scoring() {
   const logsSheet = sheet("logs");
   const scoresSheet = sheet("scores");
@@ -16,8 +29,8 @@ function scoring() {
   const logs = logsSheet.getDataRange().getValues();
   const categoryRelations = categoryRelationsSheet.getDataRange().getValues();
   const categories = categoriesSheet.getDataRange().getValues();
-  const categoryRelationsHeader = categoryRelations.shift();
-  const scoreHeader = scoresSheet.getDataRange().getValues().shift();
+  const categoryRelationsHeader: string[] = categoryRelations.shift();
+  const scoreHeader: string[] = scoresSheet.getDataRange().getValues().shift();
 
   categoryRelations.forEach(function (categoryRelation, i) {
     categories.forEach(function (category) {
@@ -31,10 +44,10 @@ function scoring() {
 
   // logs to objects
   const logsHeaders = logs.shift();
-  const objLogs = [];
+  const objLogs: Record<string, number>[] = [];
   for (let i = 1; i < logs.length; i++) {
     const row = logs[i];
-    const obj = {};
+    const obj: Record<string, number> = {};
     for (let j = 0; j < logsHeaders.length; j++) {
       obj[logsHeaders[j]] = row[j];
     }
@@ -43,25 +56,29 @@ function scoring() {
 
   // categoryRelations to objects
   const categoryRelationsHeaders = logs.shift();
-  const objCategoryRelations = {};
+  const objCategoryRelations: Record<string, ObjCategoryRelations> = {};
   for (let i = 1; i < categoryRelations.length; i++) {
     const row = categoryRelations[i];
-    const obj = {
+    const obj: ObjCategoryRelations = {
       countName: row[3],
       categoryName: row[2],
     };
     objCategoryRelations[row[1]] = obj;
   }
 
-  const score = {};
+  const score = {} as Score;
   scoreHeader.forEach((row) => (score[row] = 0));
-  Logger.log(score);
 
   objLogs.forEach((l) => {
-    Object.entries(l).forEach(([key, value]) => {
-      if (objCategoryRelations[key] === undefined) {
+    Object.entries(objCategoryRelations).forEach(([key, value]) => {
+      if (l[key] === undefined) {
         return;
       }
+      if (l[value.countName] === undefined) {
+        return;
+      }
+      score[value.categoryName] += l[key] * l[value.countName];
     });
   });
+  Logger.log(score);
 }
