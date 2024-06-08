@@ -82,3 +82,5 @@ function scoring() {
   });
   Logger.log(score);
 }
+
+export { main };

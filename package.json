@@ -7,7 +7,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "lint": "eslint src/**/*"
+    "lint": "eslint src/**/*",
+    "build": "node build.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.4.0",
@@ -20,5 +21,8 @@
     "globals": "^15.3.0",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.12.0"
+  },
+  "dependencies": {
+    "vite": "^5.2.13"
   }
 }
