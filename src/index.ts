@@ -1,6 +1,6 @@
 function main() {
-  const score = scoring();
-  write(score);
+  const scores = scoring();
+  write(scores);
 }
 
 function sheet(name: string) {
@@ -21,9 +21,8 @@ type Score = {
   stomach: number;
 };
 
-function scoring(): Score {
+function scoring(): Record<string, Score> {
   const logsSheet = sheet("logs");
-  const scoresSheet = sheet("scores");
   const categoryRelationsSheet = sheet("category_relations");
   const categoriesSheet = sheet("categories");
 
@@ -32,7 +31,6 @@ function scoring(): Score {
     .getDataRange()
     .getValues();
   const categories = categoriesSheet.getDataRange().getValues();
-  const scoreHeader: string[] = scoresSheet.getDataRange().getValues().shift();
 
   categoryRelations.forEach(function (categoryRelation, i) {
     categories.forEach(function (category) {
@@ -67,8 +65,7 @@ function scoring(): Score {
     objCategoryRelations[row[1]] = obj;
   }
 
-  const score = {} as Score;
-  scoreHeader.forEach((row) => (score[row] = 0));
+  const score = {} as Record<string, Score>;
   objLogs.forEach((l) => {
     Object.entries(objCategoryRelations).forEach(([key, value]) => {
       if (l[key] === undefined) {
@@ -77,18 +74,33 @@ function scoring(): Score {
       if (l[value.countName] === undefined) {
         return;
       }
-      score[value.categoryName] += l[key] * l[value.countName];
+      const date = new Date(l.Timestamp).toLocaleDateString("ja-JP");
+      if (!score[date]) {
+        score[date] = {
+          shoulder: 0,
+          chest: 0,
+          butt: 0,
+          legs: 0,
+          stomach: 0,
+        };
+      }
+      if (value.categoryName in score[date]) {
+        score[date][value.categoryName] += l[key] * l[value.countName];
+      }
     });
   });
   return score;
 }
 
-function write(score: Score) {
+function write(scores: Record<string, Score>) {
   const scoresSheet = sheet("scores");
   const targetRow = scoresSheet.getLastRow() + 1;
-  const scoreArr = Object.entries(score).map((entry) => entry[1]);
-  const range = scoresSheet.getRange(targetRow, 1, 1, scoreArr.length);
-  range.setValues([scoreArr]);
+  const scoreArr = Object.entries(scores).map((entry) => [
+    entry[0],
+    ...Object.values(entry[1]),
+  ]);
+  const range = scoresSheet.getRange(targetRow, 1, scoreArr.length, 5);
+  range.setValues(scoreArr);
 }
 
 export { main };
