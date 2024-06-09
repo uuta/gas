@@ -30,7 +30,7 @@ function scoring(): Record<string, Score> {
   const categoryRelations: string[] = categoryRelationsSheet
     .getDataRange()
     .getValues();
-  const categories = categoriesSheet.getDataRange().getValues();
+  const [, ...categories] = categoriesSheet.getDataRange().getValues();
 
   categoryRelations.forEach(function (categoryRelation, i) {
     categories.forEach(function (category) {
@@ -99,7 +99,12 @@ function write(scores: Record<string, Score>) {
     entry[0],
     ...Object.values(entry[1]),
   ]);
-  const range = scoresSheet.getRange(targetRow, 1, scoreArr.length, 5);
+  const range = scoresSheet.getRange(
+    targetRow,
+    1,
+    scoreArr.length,
+    scoresSheet.Shift().length,
+  );
   range.setValues(scoreArr);
 }
 
