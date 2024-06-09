@@ -1,6 +1,10 @@
 function main() {
-  const scores = scoring();
-  write(scores);
+  try {
+    const scores = scoring();
+    write(scores);
+  } catch (e) {
+    console.log("Failed with error %s", e.message);
+  }
 }
 
 function sheet(name: string) {
@@ -25,8 +29,14 @@ function scoring(): Record<string, Score> {
   const logsSheet = sheet("logs");
   const categoryRelationsSheet = sheet("category_relations");
   const categoriesSheet = sheet("categories");
-
-  const logs = logsSheet.getDataRange().getValues();
+  const { lastUpdatedAt, row } = getStatus();
+  const wholeLogs = logsSheet
+    .getRange(row, 1, logsSheet.getLastRow(), logsSheet.getLastColumn())
+    .getValues();
+  if (row !== 2 && lastUpdatedAt !== wholeLogs[0][0]) {
+    throw new Error("previous processing refers to the different data");
+  }
+  const logs = wholeLogs.shift();
   const categoryRelations: string[] = categoryRelationsSheet
     .getDataRange()
     .getValues();
@@ -43,7 +53,9 @@ function scoring(): Record<string, Score> {
   });
 
   // logs to objects
-  const logsHeaders = logs.shift();
+  const logsHeaders: string[] = logsSheet
+    .getRange(1, 1, 1, logsSheet.getLastColumn())
+    .getValues()[0];
   const objLogs: Record<string, number>[] = [];
   for (let i = 1; i < logs.length; i++) {
     const row = logs[i];
@@ -66,6 +78,7 @@ function scoring(): Record<string, Score> {
   }
 
   const score = {} as Record<string, Score>;
+  // TODO: how to add the score if the date already exists?
   objLogs.forEach((l) => {
     Object.entries(objCategoryRelations).forEach(([key, value]) => {
       if (l[key] === undefined) {
@@ -90,6 +103,32 @@ function scoring(): Record<string, Score> {
     });
   });
   return score;
+}
+
+type Status = {
+  lastUpdatedAt?: string;
+  row: number;
+};
+
+function getStatus(): Status {
+  const statusSheet = sheet("status");
+  const status: string[][] = statusSheet.getDataRange().getValues();
+  if (status[1] === undefined) {
+    return {
+      row: 2,
+    };
+  }
+  return {
+    lastUpdatedAt: status[1][0],
+    row: Number(status[1][1]),
+  };
+}
+
+// TODO: update status after writing
+function setStatus(status: Status) {
+  const statusSheet = sheet("status");
+  const range = statusSheet.getRange(2, 1, 2, 1);
+  range.setValues([[status.lastUpdatedAt, status.row]]);
 }
 
 function write(scores: Record<string, Score>) {
