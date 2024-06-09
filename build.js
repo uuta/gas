@@ -5,7 +5,7 @@ esbuild
   .build({
     entryPoints: ["src/index.ts"],
     bundle: true,
-    outfile: "public/app.js",
+    outfile: "public/index.js",
     plugins: [GasPlugin],
   })
   .catch(() => process.exit(1));

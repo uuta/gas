@@ -1,4 +1,5 @@
 node_modules/
 # .clasp.json
 yarn-error.log
+public/index.js
 
