@@ -1,6 +1,8 @@
 function main() {
   try {
-    const scores = scoring();
+    const objLogs = getObjLogs();
+    const objCategoryRelations = getObjCategoryRelations();
+    const scores = scoring({ objLogs, objCategoryRelations });
     write(scores);
   } catch (e) {
     console.log("Failed with error %s", e.message);
@@ -25,10 +27,8 @@ type Score = {
   stomach: number;
 };
 
-function scoring(): Record<string, Score> {
+function getObjLogs(): Record<string, number>[] {
   const logsSheet = sheet("logs");
-  const categoryRelationsSheet = sheet("category_relations");
-  const categoriesSheet = sheet("categories");
   const { lastUpdatedAt, row } = getStatus();
   const wholeLogs = logsSheet
     .getRange(row, 1, logsSheet.getLastRow(), logsSheet.getLastColumn())
@@ -37,20 +37,6 @@ function scoring(): Record<string, Score> {
     throw new Error("previous processing refers to the different data");
   }
   const logs = wholeLogs.shift();
-  const categoryRelations: string[] = categoryRelationsSheet
-    .getDataRange()
-    .getValues();
-  const [, ...categories] = categoriesSheet.getDataRange().getValues();
-
-  categoryRelations.forEach(function (categoryRelation, i) {
-    categories.forEach(function (category) {
-      if (categoryRelation[2] === category[0]) {
-        categoryRelations[i] = Array.from(
-          new Set([...categoryRelation, ...category]),
-        );
-      }
-    });
-  });
 
   // logs to objects
   const logsHeaders: string[] = logsSheet
@@ -65,20 +51,44 @@ function scoring(): Record<string, Score> {
     }
     objLogs.push(obj);
   }
+  return objLogs;
+}
 
-  // categoryRelations to objects
-  const objCategoryRelations: Record<string, ObjCategoryRelations> = {};
-  for (let i = 1; i < categoryRelations.length; i++) {
-    const row = categoryRelations[i];
-    const obj: ObjCategoryRelations = {
-      countName: row[3],
-      categoryName: row[2],
-    };
-    objCategoryRelations[row[1]] = obj;
-  }
-
+function scoring({
+  objLogs,
+  objCategoryRelations,
+}: {
+  objLogs: Record<string, number>[];
+  objCategoryRelations: Record<string, ObjCategoryRelations>;
+}): Record<string, Score> {
+  const scoresSheet = sheet("scores");
+  const scores: string[] = scoresSheet.getDataRange().getValues();
+  const [, ...scoreRows] = scores;
+  const { lastUpdatedAt } = getStatus();
   const score = {} as Record<string, Score>;
-  // TODO: how to add the score if the date already exists?
+  scoreRows.forEach((row) => {
+    const rowDate = new Date(row[0]).toLocaleDateString("UTC");
+    if (lastUpdatedAt === undefined) {
+      score[rowDate] = {
+        shoulder: Number(row[1]),
+        chest: Number(row[2]),
+        butt: Number(row[3]),
+        legs: Number(row[4]),
+        stomach: Number(row[5]),
+      };
+      return;
+    }
+    const lastUpdatedAtDate = new Date(lastUpdatedAt).toLocaleDateString("UTC");
+    if (rowDate >= lastUpdatedAtDate) {
+      score[rowDate] = {
+        shoulder: Number(row[1]),
+        chest: Number(row[2]),
+        butt: Number(row[3]),
+        legs: Number(row[4]),
+        stomach: Number(row[5]),
+      };
+    }
+  });
   objLogs.forEach((l) => {
     Object.entries(objCategoryRelations).forEach(([key, value]) => {
       if (l[key] === undefined) {
@@ -87,7 +97,7 @@ function scoring(): Record<string, Score> {
       if (l[value.countName] === undefined) {
         return;
       }
-      const date = new Date(l.Timestamp).toLocaleDateString("ja-JP");
+      const date = new Date(l.Timestamp).toLocaleDateString("UTC");
       if (!score[date]) {
         score[date] = {
           shoulder: 0,
@@ -109,6 +119,36 @@ type Status = {
   lastUpdatedAt?: string;
   row: number;
 };
+
+function getObjCategoryRelations(): Record<string, ObjCategoryRelations> {
+  const categoryRelationsSheet = sheet("category_relations");
+  const categoriesSheet = sheet("categories");
+  const categoryRelations: string[] = categoryRelationsSheet
+    .getDataRange()
+    .getValues();
+  const [, ...categories] = categoriesSheet.getDataRange().getValues();
+  categoryRelations.forEach(function (categoryRelation, i) {
+    categories.forEach(function (category) {
+      if (categoryRelation[2] === category[0]) {
+        categoryRelations[i] = Array.from(
+          new Set([...categoryRelation, ...category]),
+        );
+      }
+    });
+  });
+
+  // categoryRelations to objects
+  const objCategoryRelations: Record<string, ObjCategoryRelations> = {};
+  for (let i = 1; i < categoryRelations.length; i++) {
+    const row = categoryRelations[i];
+    const obj: ObjCategoryRelations = {
+      countName: row[3],
+      categoryName: row[2],
+    };
+    objCategoryRelations[row[1]] = obj;
+  }
+  return objCategoryRelations;
+}
 
 function getStatus(): Status {
   const statusSheet = sheet("status");
