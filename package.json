@@ -8,7 +8,9 @@
   "type": "module",
   "scripts": {
     "lint": "eslint src/**/*",
-    "build": "node build.js"
+    "build": "node build.js",
+    "clasp-push": "clasp push",
+    "clasp-build": "node build.js && clasp push && clasp open"
   },
   "devDependencies": {
     "@eslint/js": "^9.4.0",

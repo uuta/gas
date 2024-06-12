@@ -4,6 +4,7 @@ function main() {
     const objCategoryRelations = getObjCategoryRelations();
     const scores = scoring({ objLogs, objCategoryRelations });
     write(scores);
+    setStatus();
   } catch (e) {
     console.log("Failed with error %s", e.message);
   }
@@ -30,13 +31,18 @@ type Score = {
 function getObjLogs(): Record<string, number>[] {
   const logsSheet = sheet("logs");
   const { lastUpdatedAt, row } = getStatus();
-  const wholeLogs = logsSheet
-    .getRange(row, 1, logsSheet.getLastRow(), logsSheet.getLastColumn())
+  const logs = logsSheet
+    .getRange(
+      row,
+      1,
+      logsSheet.getLastRow() - row + 1,
+      logsSheet.getLastColumn(),
+    )
     .getValues();
-  if (row !== 2 && lastUpdatedAt !== wholeLogs[0][0]) {
+  if (row !== 2 && lastUpdatedAt !== logs[0][0]) {
     throw new Error("previous processing refers to the different data");
   }
-  const logs = wholeLogs.shift();
+  logs[0].shift();
 
   // logs to objects
   const logsHeaders: string[] = logsSheet
@@ -67,7 +73,7 @@ function scoring({
   const { lastUpdatedAt } = getStatus();
   const score = {} as Record<string, Score>;
   scoreRows.forEach((row) => {
-    const rowDate = new Date(row[0]).toLocaleDateString("UTC");
+    const rowDate = new Date(row[0]).toLocaleDateString("ja-JP");
     if (lastUpdatedAt === undefined) {
       score[rowDate] = {
         shoulder: Number(row[1]),
@@ -78,7 +84,9 @@ function scoring({
       };
       return;
     }
-    const lastUpdatedAtDate = new Date(lastUpdatedAt).toLocaleDateString("UTC");
+    const lastUpdatedAtDate = new Date(lastUpdatedAt).toLocaleDateString(
+      "ja-JP",
+    );
     if (rowDate >= lastUpdatedAtDate) {
       score[rowDate] = {
         shoulder: Number(row[1]),
@@ -97,7 +105,7 @@ function scoring({
       if (l[value.countName] === undefined) {
         return;
       }
-      const date = new Date(l.Timestamp).toLocaleDateString("UTC");
+      const date = new Date(l.Timestamp).toLocaleDateString("ja-JP");
       if (!score[date]) {
         score[date] = {
           shoulder: 0,
@@ -164,27 +172,33 @@ function getStatus(): Status {
   };
 }
 
-// TODO: update status after writing
-function setStatus(status: Status) {
+function setStatus() {
+  const logsSheet = sheet("logs");
+  const timestamp = logsSheet.getRange(logsSheet.getLastRow(), 1).getValues();
   const statusSheet = sheet("status");
-  const range = statusSheet.getRange(2, 1, 2, 1);
-  range.setValues([[status.lastUpdatedAt, status.row]]);
+  const range = statusSheet.getRange(2, 1, 1, 2);
+  range.setValues([[timestamp, logsSheet.getLastRow()]]);
 }
 
 function write(scores: Record<string, Score>) {
   const scoresSheet = sheet("scores");
-  const targetRow = scoresSheet.getLastRow() + 1;
-  const scoreArr = Object.entries(scores).map((entry) => [
-    entry[0],
-    ...Object.values(entry[1]),
-  ]);
-  const range = scoresSheet.getRange(
-    targetRow,
-    1,
-    scoreArr.length,
-    scoresSheet.Shift().length,
-  );
-  range.setValues(scoreArr);
+  Object.entries(scores).map((entry) => {
+    const scoreArr = [entry[0], ...Object.values(entry[1])];
+    const position = scoresSheet.createTextFinder(scoreArr[0]).findAll();
+    if (position.length > 0) {
+      const range = scoresSheet.getRange(
+        position.at(-1).getRow(),
+        2,
+        1,
+        scoreArr.length,
+      );
+      range.setValues([scoreArr]);
+      return;
+    }
+    const targetRow = scoresSheet.getLastRow() + 1;
+    const range = scoresSheet.getRange(targetRow, 1, 1, scoreArr.length);
+    range.setValues([scoreArr]);
+  });
 }
 
 export { main };
