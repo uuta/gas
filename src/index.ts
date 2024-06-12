@@ -39,7 +39,12 @@ function getObjLogs(): Record<string, number>[] {
       logsSheet.getLastColumn(),
     )
     .getValues();
-  if (row !== 2 && lastUpdatedAt !== logs[0][0]) {
+  if (
+    row !== 2 &&
+    lastUpdatedAt !== undefined &&
+    new Date(lastUpdatedAt).toLocaleString() !==
+      new Date(logs[0][0]).toLocaleString()
+  ) {
     throw new Error("previous processing refers to the different data");
   }
   logs[0].shift();
@@ -188,7 +193,7 @@ function write(scores: Record<string, Score>) {
     if (position.length > 0) {
       const range = scoresSheet.getRange(
         position.at(-1).getRow(),
-        2,
+        1,
         1,
         scoreArr.length,
       );
