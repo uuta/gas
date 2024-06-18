@@ -7,5 +7,6 @@ esbuild
     bundle: true,
     outfile: "public/index.js",
     plugins: [GasPlugin],
+    define: { "globalThis.main": "main" },
   })
   .catch(() => process.exit(1));

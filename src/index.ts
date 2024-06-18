@@ -73,12 +73,15 @@ function scoring({
   objCategoryRelations: Record<string, ObjCategoryRelations>;
 }): Record<string, Score> {
   const scoresSheet = sheet("scores");
-  const scores: string[] = scoresSheet.getDataRange().getValues();
+  const scores: string[][] = scoresSheet.getDataRange().getValues();
   const [, ...scoreRows] = scores;
   const { lastUpdatedAt } = getStatus();
   const score = {} as Record<string, Score>;
   scoreRows.forEach((row) => {
-    const rowDate = new Date(row[0]).toLocaleDateString("ja-JP");
+    const date = new Date(row[0]);
+    // TODO: consider summer time
+    date.setHours(date.getHours() + 11);
+    const rowDate = date.toLocaleDateString("ja-JP");
     if (lastUpdatedAt === undefined) {
       score[rowDate] = {
         shoulder: Number(row[1]),
